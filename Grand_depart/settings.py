@@ -79,7 +79,7 @@ WSGI_APPLICATION = 'Grand_depart.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-       'NAME': 'grand_depart',
+       'NAME': 'grand_depart_db',
        'USER': 'postgres',
        'PASSWORD': '12345',
        'HOST': 'localhost',
@@ -124,7 +124,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+# STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -139,3 +139,4 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
+# AUTH_USER_MODEL = 'User_side.CustomUser'

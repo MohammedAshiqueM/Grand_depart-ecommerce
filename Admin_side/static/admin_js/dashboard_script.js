@@ -1,6 +1,7 @@
 // Query selectors
 const icon = document.querySelector('.icon');
 const search = document.querySelector('.search');
+const searchInput = document.getElementById('mysearch');
 
 // Mouse enter event handler for search
 search.addEventListener('mouseenter', function() {
@@ -9,13 +10,28 @@ search.addEventListener('mouseenter', function() {
 
 // Mouse leave event handler for search
 search.addEventListener('mouseleave', function() {
-    search.classList.toggle('reset');
+    if (!searchInput.value.trim()) {
+        search.classList.remove('active');
+    }
 });
 
 // Reset function
 function reset() {
-    document.getElementById('mysearch').value = '';
+    searchInput.value = '';
+    search.classList.remove('active');
 }
+
+// Function to handle input change
+function handleInputChange() {
+    if (searchInput.value.trim()) {
+        search.classList.add('active');
+    } else {
+        search.classList.remove('active');
+    }
+}
+
+// Add event listener for input change
+searchInput.addEventListener('input', handleInputChange);
 
 // Welcome message
 let welcome;

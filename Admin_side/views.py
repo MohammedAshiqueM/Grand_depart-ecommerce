@@ -5,6 +5,9 @@ from django.contrib.auth import login,logout,authenticate
 from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
+from django.db.models import Q
+from django.http import JsonResponse
+
 
 
 # Create your views here.
@@ -37,3 +40,29 @@ def dashboard(request):
     # if not request.user.is_superuser:
     #     return HttpResponseForbidden("You do not have access to this page.")
     return render(request,'dashboard.html')
+
+def customers(request):
+    if 'value' in request.GET:
+        credential = request.GET['value']
+        data = User.objects.filter(Q(username__icontains=credential) | Q(email__icontains=credential))
+        context = {'data':data}
+    else:
+        data = User.objects.all()
+        context = {'data':data}
+    return render(request,'customers.html',context)
+
+def block(request,pk):
+    user = User.objects.get(pk=pk)
+    user.is_active = False
+    data = User.objects.all()
+    context = {'data':data}
+    user.save()
+    return JsonResponse({'success': True})
+
+def unblock(request,pk):
+    user = User.objects.get(pk=pk)
+    user.is_active = True
+    user.save()
+    data = User.objects.all()
+    context = {'data':data}
+    return JsonResponse({'success': True})

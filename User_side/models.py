@@ -1,3 +1,7 @@
 from django.db import models
+# from django.contrib.auth.models import AbstractUser
+# from django.db import models
 
-# Create your models here.
+# class CustomUser(AbstractUser):
+#     phone = models.BigIntegerField(null=True)
+#     # joined_date = models.DateField(auto_now_add=True)
