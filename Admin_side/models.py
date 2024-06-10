@@ -1,24 +1,7 @@
 from django.db import models
+from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractUser
 
-class User(AbstractUser):
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
-
-    # Add related_name to avoid conflicts
-    groups = models.ManyToManyField(
-        'auth.Group',
-        related_name='custom_user_set',  # Custom related name
-        blank=True,
-        help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',
-        related_query_name='custom_user'
-    )
-    user_permissions = models.ManyToManyField(
-        'auth.Permission',
-        related_name='custom_user_permissions_set',  # Custom related name
-        blank=True,
-        help_text='Specific permissions for this user.',
-        related_query_name='custom_user_permission'
-    )
 class Address(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     unit_number = models.CharField(max_length=10, blank=True, null=True)
@@ -44,12 +27,14 @@ class PaymentMethod(models.Model):
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
+    is_deleted = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.name}"
 
 class SubCategory(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='subcategories')
+    is_deleted = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.name}"
 
@@ -69,6 +54,7 @@ class Product(models.Model):
     qty_in_stock = models.IntegerField()
     price = models.FloatField()
     product_image = models.ImageField(upload_to='products/', blank=True, null=True)
+    is_deleted = models.BooleanField(default=False)
 
 class ProductConfiguration(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)

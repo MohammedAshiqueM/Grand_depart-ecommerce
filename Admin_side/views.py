@@ -86,9 +86,15 @@ def unblock(request, pk):
     
 
 def category(request):
-    parent = Category.objects.all()
-    sub = SubCategory.objects.all()
-    return render(request,"category.html",{"parent":parent,"sub":sub})
+    if 'value' in request.GET:
+        credential = request.GET['value']
+        parent = Category.objects.filter(Q(name__icontains=credential))
+        sub = SubCategory.objects.filter(Q(name__icontains=credential) | Q(category__name__icontains=credential))
+        context = {"parent":parent,"sub":sub}
+    else:
+        parent = Category.objects.all()
+        sub = SubCategory.objects.all()
+    return render(request,"category.html",context)
 
 def addCategory(request):
         data = Category.objects.all()
@@ -121,13 +127,13 @@ def addCategory(request):
                     return redirect('addCategory')
                 elif not selected :
                     messages.error(request,f"Should select one parent class for subclass {sub_category}")
+                    return redirect('addCategory')
                 else:
                     parent = Category.objects.get(id=selected)
                     newSub = SubCategory.objects.create(name=sub_category,category=parent)    
-                    # newCategory.save()
-                    # messages.success(request,f"New cagetory {newCategory} is created")
-                    pass
-                return redirect('addCategory')
+                    newSub.save()
+                    messages.success(request,f"New cagetory {newSub} is created")
+                return redirect('category')
         return render(request,"addCategory.html",{"data":data})
 
 
