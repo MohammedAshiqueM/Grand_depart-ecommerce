@@ -4,6 +4,21 @@ from django.contrib.auth.models import AbstractUser
 class User(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
 
+    # Add related_name to avoid conflicts
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='custom_user_set',  # Custom related name
+        blank=True,
+        help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',
+        related_query_name='custom_user'
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='custom_user_permissions_set',  # Custom related name
+        blank=True,
+        help_text='Specific permissions for this user.',
+        related_query_name='custom_user_permission'
+    )
 class Address(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     unit_number = models.CharField(max_length=10, blank=True, null=True)
@@ -29,11 +44,14 @@ class PaymentMethod(models.Model):
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
-    parent_category = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True)
+    def __str__(self):
+        return f"{self.name}"
 
 class SubCategory(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='subcategories')
+    def __str__(self):
+        return f"{self.name}"
 
 class Variation(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
@@ -47,18 +65,13 @@ class Product(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    subcategory = models.ForeignKey(SubCategory, on_delete=models.CASCADE, blank=True, null=True)
-    product_image = models.ImageField(upload_to='products/', blank=True, null=True)
-
-class ProductItem(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     SKU = models.CharField(max_length=255, unique=True)
     qty_in_stock = models.IntegerField()
     price = models.FloatField()
-    product_image = models.ImageField(upload_to='product_items/', blank=True, null=True)
+    product_image = models.ImageField(upload_to='products/', blank=True, null=True)
 
 class ProductConfiguration(models.Model):
-    product_item = models.ForeignKey(ProductItem, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     variation_option = models.ForeignKey(VariationOption, on_delete=models.CASCADE)
 
 class Cart(models.Model):
@@ -66,7 +79,7 @@ class Cart(models.Model):
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
-    product_item = models.ForeignKey(ProductItem, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     qty = models.IntegerField()
 
 class ShippingMethod(models.Model):
@@ -87,13 +100,13 @@ class Order(models.Model):
 
 class OrderLine(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
-    product_item = models.ForeignKey(ProductItem, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     qty = models.IntegerField()
     price = models.FloatField()
 
 class Review(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    ordered_product = models.ForeignKey(ProductItem, on_delete=models.CASCADE)
+    ordered_product = models.ForeignKey(Product, on_delete=models.CASCADE)
     rating_value = models.IntegerField()
     comment = models.TextField()
 

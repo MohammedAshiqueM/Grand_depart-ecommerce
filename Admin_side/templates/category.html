@@ -1,0 +1,72 @@
+{% include 'common_block.html' %}
+        <div class="projects">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="heading">Base Category Details</h3>
+                    <a href="{% url 'addCategory' %}"><button>Add Category</button></a>
+
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table width="100%">
+                            <thead>
+                                <tr>
+                                    <td>Category</td>
+                                    <td>Actions</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for i in parent %}
+                                <tr>
+                                    <td>{{i.name}}</td>
+                                    <td>
+                                    {% if i.is_active %}
+                                    <button class="block_btn" onclick="blockUser(`{{ i.id }}`)">Block</button>
+                                    {% else %}
+                                    <button class="unblock_btn" onclick="unblockUser(`{{ i.id }}`)">Unblock</button>
+                                    {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div><br>
+
+<div class="projects">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="heading">Sub Category Details</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table width="100%">
+                            <thead>
+                                <tr>
+                                    <td>Sub Category</td>
+                                    <td>Base Category</td>
+                                    <td>Actions</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for i in sub %}
+                                <tr>
+                                    <td>{{i.name}}</td>
+                                    <td>{{i.category}}</td>
+                                    <td>
+                                    {% if i.is_active %}
+                                    <button class="block_btn" onclick="blockUser(`{{ i.id }}`)">Block</button>
+                                    {% else %}
+                                    <button class="unblock_btn" onclick="unblockUser(`{{ i.id }}`)">Unblock</button>
+                                    {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>

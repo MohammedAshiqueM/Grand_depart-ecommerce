@@ -1,79 +1,57 @@
-// Ensure this script is only included once
-if (!window.csrfTokenInitialized) {
-    window.csrfTokenInitialized = true;
-
-    // Function to get the CSRF token from the cookies
-    function getCookie(name) {
-        var cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            var cookies = document.cookie.split(';');
-            for (var i = 0; i < cookies.length; i++) {
-                var cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
+function blockUser(userId) {
+    fetch(`/administration/block/${userId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
         }
-        return cookieValue;
-    }
-
-    const csrftoken = getCookie('csrftoken');
-
-    // Function to block a user
-    function blockUser(userId) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/administration/block/' + userId + '/', true);
-        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    var response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        var button = document.querySelector(`#block-unblock-btn-${userId}`);
-                        if (button) {
-                            button.textContent = "Unblock";
-                            button.className = "unblock_btn";
-                            button.setAttribute('onclick', `unblockUser(${userId})`);
-                        }
-                    }
-                } else {
-                    console.error(xhr.responseText);
-                }
+    })
+        .then(response => {
+            if (response.ok) {
+                // Update UI or do something after successful blocking
+                location.reload();
+            } else {
+                console.error('Failed to block user');
             }
-        };
-
-        xhr.send();
-    }
-
-    // Function to unblock a user
-    function unblockUser(userId) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', '/administration/unblock/' + userId + '/', true);
-        xhr.setRequestHeader('X-CSRFToken', csrftoken);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    var response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        var button = document.querySelector(`#block-unblock-btn-${userId}`);
-                        if (button) {
-                            button.textContent = "Block";
-                            button.className = "block_btn";
-                            button.setAttribute('onclick', `blockUser(${userId})`);
-                        }
-                    }
-                } else {
-                    console.error(xhr.responseText);
-                }
-            }
-        };
-
-        xhr.send();
-    }
+        })
+        .catch(error => {
+            console.error('Error blocking user:', error);
+        });
 }
 
+function unblockUser(userId) {
+    fetch(`/administration/unblock/${userId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+        .then(response => {
+            if (response.ok) {
+                // Update UI or do something after successful unblocking
+                location.reload();
+            } else {
+                console.error('Failed to unblock user');
+            }
+        })
+        .catch(error => {
+            console.error('Error unblocking user:', error);
+        });
+}
+
+// Function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}

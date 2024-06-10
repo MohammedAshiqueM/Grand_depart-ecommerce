@@ -7,7 +7,14 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from django.db.models import Q
 from django.http import JsonResponse
-
+from django.views.generic import ListView
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse, HttpResponse
+from .models import (
+    User, Address, PaymentType, PaymentMethod, Category,SubCategory,
+    Variation, VariationOption, Product, ProductConfiguration,
+    Cart, CartItem, ShippingMethod, OrderStatus, Order, OrderLine, Review, Promotion, PromotionCategory
+)
 
 
 # Create your views here.
@@ -48,21 +55,95 @@ def customers(request):
         context = {'data':data}
     else:
         data = User.objects.all()
+        print(f"SQL Query: {str(data.query)}") 
+        print(list(data))
         context = {'data':data}
+        print(data)
     return render(request,'customers.html',context)
 
-def block(request,pk):
-    user = User.objects.get(pk=pk)
-    user.is_active = False
-    data = User.objects.all()
-    context = {'data':data}
-    user.save()
-    return JsonResponse({'success': True})
+def block(request, pk):
+    try:
+        user = User.objects.get(pk=pk)
+        user.is_active = False
+        user.save()
+        return JsonResponse({'success': True})
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'User not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': 'Internal server error'})
 
-def unblock(request,pk):
-    user = User.objects.get(pk=pk)
-    user.is_active = True
-    user.save()
-    data = User.objects.all()
-    context = {'data':data}
-    return JsonResponse({'success': True})
+def unblock(request, pk):
+    try:
+        user = User.objects.get(pk=pk)
+        user.is_active = True
+        user.save()
+        return JsonResponse({'success': True})
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'User not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': 'Internal server error'})
+    
+    
+
+def category(request):
+    parent = Category.objects.all()
+    sub = SubCategory.objects.all()
+    return render(request,"category.html",{"parent":parent,"sub":sub})
+
+def addCategory(request):
+        data = Category.objects.all()
+        if request.method == 'POST':
+            print("outside")
+            if request.POST.get('submit') == 'main':
+                print("inside")
+                category = request.POST.get('categoryName')
+                print(category)
+                if not category:
+                    messages.error(request, "Enter a Category name")
+                    return redirect('addCategory')
+                elif len(category) < 3:
+                    messages.error(request,"Category name must have atleast 3 letters")
+                    return redirect('addCategory')
+                else:
+                    newCategory = Category.objects.create(name=category)
+                    newCategory.save()
+                    messages.success(request,f"New cagetory {newCategory} is created")
+                return redirect('category')
+            elif request.POST.get('submit') == 'sub':
+                sub_category = request.POST.get('subCategory')
+                selected = request.POST.get('parentCategory')
+                print(sub_category,selected)
+                if not sub_category:
+                    messages.error(request, "Enter a Subcategory name")
+                    return redirect('addCategory')
+                elif len(sub_category) < 3:
+                    messages.error(request,"Subcategory name must have atleast 3 letters")
+                    return redirect('addCategory')
+                elif not selected :
+                    messages.error(request,f"Should select one parent class for subclass {sub_category}")
+                else:
+                    parent = Category.objects.get(id=selected)
+                    newSub = SubCategory.objects.create(name=sub_category,category=parent)    
+                    # newCategory.save()
+                    # messages.success(request,f"New cagetory {newCategory} is created")
+                    pass
+                return redirect('addCategory')
+        return render(request,"addCategory.html",{"data":data})
+
+
+# class ProductListView(ListView):
+#     model = Product
+#     template_name = 'product_list.html'
+#     context_object_name = 'products'
+
+#     def get_queryset(self):
+#         category_id = self.kwargs.get('category_id')
+#         subcategory_id = self.kwargs.get('subcategory_id')
+#         queryset = Product.objects.all()
+
+#         if category_id:
+#             queryset = queryset.filter(category_id=category_id)
+#         if subcategory_id:
+#             queryset = queryset.filter(subcategory_id=subcategory_id)
+
+#         return queryset
