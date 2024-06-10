@@ -94,6 +94,7 @@ def category(request):
     else:
         parent = Category.objects.all()
         sub = SubCategory.objects.all()
+        context = {"parent":parent,"sub":sub}
     return render(request,"category.html",context)
 
 def addCategory(request):
