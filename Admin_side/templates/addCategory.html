@@ -44,11 +44,16 @@
     <p class="alert"><i class="fa-solid fa-triangle-exclamation"></i> {{msg}}</p>
     {% endfor %}
     {% endif %}
+    {% block content %}
     <div class="">
         <div class="projects">
             <div class="card">
                 <div class="card-header">
+                    {% if edit_mode %}
+                    <h3 class="heading">Edit Base Category</h3>
+                    {% else %}
                     <h3 class="heading">Add new Category</h3>
+                    {% endif %}
                     <a href="{% url 'category' %}"><button>Cancel</button></a>
                 </div>
                 <div class="card-body">
@@ -61,7 +66,7 @@
                                         <label for="">Category</label>
                                     </td>
                                     <td>
-                                        <input type="text" name="categoryName">
+                                        <input type="text" name="categoryName" {% if edit_mode %} value="{{value.name}}" {% endif %}>
                                     </td>
                                 </tr>
                             </table>
@@ -71,14 +76,21 @@
                 </div>
             </div>
         </div>
-    </div><br>
+    </div>
+    {% endblock %}
+    <br>
 
-
+    {% block section %}
     <div class="">
         <div class="projects">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="heading">Add sub categories</h3>
+                    {% if edit_mode %}
+                    <h3 class="heading">Edit Sub Category</h3>
+                    {% else %}
+                    <h3 class="heading">Add Sub Category</h3>
+                    {% endif %}
+                    <a href="{% url 'category' %}"><button>Cancel</button></a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -90,7 +102,7 @@
                                         <label for="">Sub Category </label>
                                     </td>
                                     <td>
-                                        <input type="text" name="subCategory">
+                                        <input type="text" name="subCategory" {% if edit_mode %} value="{{value}}" {% endif %}>
                                     </td>
                                 </tr>
                                 <tr>
@@ -98,10 +110,17 @@
                                         <label for="">Parent Category </label>
                                     </td>
                                     <td>
+                                        
                                         <select name="parentCategory">
-                                            <option value="" disabled selected>select</option>
-                                            {% for i in data %}
-                                            <option value="{{i.id}}">{{i.name}}</option>
+                                            {% if edit_mode %}
+                                                <option value="{{ value.category.id }}" selected>{{ value.category.name }}</option>
+                                            {% else %}
+                                                <option value="" disabled selected>Select</option>
+                                            {% endif %}
+                                            {% for category in data %}
+                                                <option value="{{ category.id }}" {% if edit_mode and category.id == value.category.id %}selected{% endif %}>
+                                                    {{ category.name }}
+                                                </option>
                                             {% endfor %}
                                         </select>
                                     </td>
@@ -116,6 +135,7 @@
             </div>
         </div>
     </div>
+    {% endblock %}
 </body>
 
 </html>

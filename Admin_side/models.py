@@ -27,14 +27,16 @@ class PaymentMethod(models.Model):
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
-    is_deleted = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    # reminder ! add image
     def __str__(self):
         return f"{self.name}"
 
 class SubCategory(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='subcategories')
-    is_deleted = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    # reminder ! add image
     def __str__(self):
         return f"{self.name}"
 
@@ -50,11 +52,17 @@ class Product(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    subcategory = models.ForeignKey(SubCategory, on_delete=models.CASCADE, related_name='products',null=True, blank=True) 
     SKU = models.CharField(max_length=255, unique=True)
     qty_in_stock = models.IntegerField()
     price = models.FloatField()
     product_image = models.ImageField(upload_to='products/', blank=True, null=True)
-    is_deleted = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='products/')
+
 
 class ProductConfiguration(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)

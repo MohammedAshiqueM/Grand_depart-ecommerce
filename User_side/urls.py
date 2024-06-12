@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('',views.userLogin,name='userLogin'),
     path('home',views.userHome,name='userHome'),
+    path('otp/', views.otp, name='otp'),
 
     
     

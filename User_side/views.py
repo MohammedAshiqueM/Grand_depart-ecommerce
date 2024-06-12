@@ -8,6 +8,8 @@ from django.views.decorators.cache import never_cache
 from django.core.exceptions import ValidationError
 # from django.core.validators import validate_email,EmailValidator
 import re
+from .utils import generate_otp, send_otp
+from django.contrib.sessions.middleware import SessionMiddleware
 
 
 ########################## function for login & singUp ###############################
@@ -93,14 +95,60 @@ def userLogin(request):
                         except ValidationError as e:
                             messages.error(request, e.message)
                         else:
-                            user = User.objects.create_user(username=signUp_username, email=signUp_email)
-                            user.set_password(signUp_password1)
-                            user.save()
+                            # Save user data to session
+                            request.session['username'] = signUp_username
+                            request.session['email'] = signUp_email
+                            request.session['password'] = signUp_password1
+
+                            # Generate OTP and send it via email
+                            otp = generate_otp()
+                            send_otp(signUp_email, otp)
+                            request.session['otp'] = otp
+                            return redirect('otp')
                             messages.success(request, f"New user '{signUp_username}' is created")
                             return redirect('userLogin')
 
     print("Final active_form:", active_form)
     return render(request, "login.html", {'active_form': active_form})
+
+def otp(request):
+    # Retrieve user data from session
+    username = request.session.get('username')
+    email = request.session.get('email')
+    password = request.session.get('password')
+
+    # Check if user data is present in session
+    if not (username and email and password):
+        return redirect('sign_up')
+
+    if request.method == 'POST':
+        # Assuming your OTP fields are named 'ist', 'sec', 'third', 'fourth', and 'fifth'
+        otp_digits = [request.POST.get('ist', ''),
+                      request.POST.get('sec', ''),
+                      request.POST.get('third', ''),
+                      request.POST.get('fourth', ''),
+                      request.POST.get('fifth', '')]
+
+        # Concatenate OTP digits into a single OTP string
+        otp = ''.join(otp_digits)
+
+        # Retrieve OTP from session
+        session_otp = request.session.get('otp')
+
+        if otp == session_otp:
+            # OTP is correct, create user and log in
+            user = User.objects.create_user(username=username, email=email, password=password)
+            user.is_active = True
+            user.save()
+            auth_login(request, user)
+            return redirect('home')
+        else:
+            # Invalid OTP, display error message
+            messages.error(request,"Ivalid otp")
+            return render(request, 'otp.html')
+
+    return render(request, 'otp.html')
+
 
 ########################## function for home page ############################
 @login_required(login_url='userLogin')
