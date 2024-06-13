@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 # from django.core.validators import validate_email,EmailValidator
 import re
 from .utils import generate_otp, send_otp
-from django.contrib.sessions.middleware import SessionMiddleware
+from datetime import datetime, timedelta
 
 
 ########################## function for login & singUp ###############################
@@ -104,6 +104,7 @@ def userLogin(request):
                             otp = generate_otp()
                             send_otp(signUp_email, otp)
                             request.session['otp'] = otp
+                            request.session['otp_creation_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                             return redirect('otp')
                             messages.success(request, f"New user '{signUp_username}' is created")
                             return redirect('userLogin')
@@ -116,10 +117,18 @@ def otp(request):
     username = request.session.get('username')
     email = request.session.get('email')
     password = request.session.get('password')
-
+    otp_creation_time_str = request.session.get('otp_creation_time')
+    
     # Check if user data is present in session
     if not (username and email and password):
-        return redirect('sign_up')
+        return redirect('userLogin')
+    
+    otp_creation_time = datetime.strptime(otp_creation_time_str, '%Y-%m-%d %H:%M:%S')
+    otp_expiry_time = otp_creation_time + timedelta(minutes=5)
+
+    if datetime.now() > otp_expiry_time:
+        messages.error(request, "OTP has expired. Please sign up again.")
+        return redirect('userLogin')
 
     if request.method == 'POST':
         # Assuming your OTP fields are named 'ist', 'sec', 'third', 'fourth', and 'fifth'
@@ -131,17 +140,17 @@ def otp(request):
 
         # Concatenate OTP digits into a single OTP string
         otp = ''.join(otp_digits)
-
+        print("otp",otp)
         # Retrieve OTP from session
         session_otp = request.session.get('otp')
-
+        print("session",otp)
         if otp == session_otp:
             # OTP is correct, create user and log in
             user = User.objects.create_user(username=username, email=email, password=password)
             user.is_active = True
             user.save()
             auth_login(request, user)
-            return redirect('home')
+            return redirect('userLogin')
         else:
             # Invalid OTP, display error message
             messages.error(request,"Ivalid otp")
