@@ -149,7 +149,7 @@ def otp(request):
             user = User.objects.create_user(username=username, email=email, password=password)
             user.is_active = True
             user.save()
-            auth_login(request, user)
+            # auth_login(request, user)
             return redirect('userLogin')
         else:
             # Invalid OTP, display error message
@@ -158,12 +158,29 @@ def otp(request):
 
     return render(request, 'otp.html')
 
-
+def resend_otp(request):
+    if request.method == 'GET':
+        # Retrieve user email from session
+        email = request.session.get('email')
+        
+        # Generate new OTP and update session
+        new_otp = generate_otp()
+        request.session['otp'] = new_otp
+        request.session['otp_creation_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Resend OTP via email (assuming send_otp function sends the OTP)
+        send_otp(email, new_otp)
+        
+        # Display success message
+        messages.success(request, "OTP has been resent.")
+        
+        # Redirect back to OTP page
+        return redirect('otp')
 ########################## function for home page ############################
-@login_required(login_url='userLogin')
-@never_cache
+# @login_required(login_url='userLogin')
+# @never_cache
 def userHome(request):
-    if request.user.is_authenticated:
+    # if request.user.is_authenticated:
         return render(request,"home.html")
 
 ########################## function for logout ############################

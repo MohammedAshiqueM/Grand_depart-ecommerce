@@ -22,5 +22,4 @@ urlpatterns = [
     path('get_subcategories/<int:category_id>/', views.get_subcategories, name='get_subcategories'),
     path('editProduct/<pk>/', views.editProduct, name='editProduct'),
     
-    
 ]

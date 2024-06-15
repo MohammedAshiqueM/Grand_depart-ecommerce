@@ -12,20 +12,20 @@
         crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
-            font-family: Rubik;
+            font-family: 'Rubik', sans-serif;
             margin: 0;
             padding: 0;
             height: 100vh;
-            background: #000000; /* fallback for old browsers */
-            background: -webkit-linear-gradient(to right, #434343, #000000); /* Chrome 10-25, Safari 5.1-6 */
-            background: linear-gradient(to right, #434343, #000000); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+            background: #000000;
+            background: -webkit-linear-gradient(to right, #434343, #000000);
+            background: linear-gradient(to right, #434343, #000000);
         }
 
         .container {
             display: flex;
-            flex-flow: column;
+            flex-direction: column;
             height: 100%;
-            align-items: space-around;
+            align-items: center;
             justify-content: center;
         }
 
@@ -41,14 +41,14 @@
             border: none;
             border-radius: 5px;
             text-align: center;
-            font-family: arimo;
+            font-family: 'Arimo', sans-serif;
             font-size: 1.2rem;
             background: #eef2f3;
         }
 
         h1 {
             text-align: center;
-            font-family: arimo;
+            font-family: 'Arimo', sans-serif;
             color: honeydew;
         }
 
@@ -56,15 +56,15 @@
             width: 150px;
             height: 40px;
             margin: 25px auto 0px auto;
-            font-family: arimo;
+            font-family: 'Arimo', sans-serif;
             font-size: 1.1rem;
             border: none;
             border-radius: 5px;
             letter-spacing: 2px;
             cursor: pointer;
-            background: #616161; /* fallback for old browsers */
-            background: -webkit-linear-gradient(to right, #9bc5c3, #616161); /* Chrome 10-25, Safari 5.1-6 */
-            background: linear-gradient(to right, #9bc5c3, #616161); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+            background: #616161;
+            background: -webkit-linear-gradient(to right, #9bc5c3, #616161);
+            background: linear-gradient(to right, #9bc5c3, #616161);
         }
 
         .alert-msg,
@@ -188,14 +188,14 @@
             {% if messages %}
             {% for msg in messages %}
             <div>
-                <p class="alert-msg"><i class="fa-solid fa-triangle-exclamation"></i> {{msg}}</p>
+                <p class="alert-msg"><i class="fa-solid fa-triangle-exclamation"></i> {{ msg }}</p>
             </div>
             {% endfor %}
             {% endif %}
             <h1>ENTER OTP</h1>
             <div class="userInput">
                 {% csrf_token %}
-                <input type="text" id='ist' maxlength="1" name="ist" onkeyup="clickEvent(this,'sec')">
+                <input type="text" id='ist' maxlength="1" name="ist" onkeyup="clickEvent(this,'sec')" autofocus>
                 <input type="text" id="sec" maxlength="1" name="sec" onkeyup="clickEvent(this,'third')">
                 <input type="text" id="third" maxlength="1" name="third" onkeyup="clickEvent(this,'fourth')">
                 <input type="text" id="fourth" maxlength="1" name="fourth" onkeyup="clickEvent(this,'fifth')">
@@ -203,6 +203,7 @@
             </div>
             <button type="submit">CONFIRM</button>
         </form>
+        <a href="{% url 'resend_otp' %}" id="resend_otp_link">Resend OTP</a>
     </div>
 
     <script>
@@ -215,10 +216,16 @@
         let timer;
         let timeLeft = 300; // 5 minutes in seconds
 
+        // Check if there's an existing time left in localStorage
+        if (localStorage.getItem('timeLeft')) {
+            timeLeft = parseInt(localStorage.getItem('timeLeft'));
+        }
+
         function startTimer() {
             timer = setInterval(() => {
                 if (timeLeft <= 0) {
                     clearInterval(timer);
+                    localStorage.removeItem('timeLeft');
                     alert("OTP has expired. Please request a new one.");
                     window.location.href = "{% url 'userLogin' %}"; // Redirect to login page
                 } else {
@@ -226,11 +233,49 @@
                     let seconds = timeLeft % 60;
                     document.getElementById("otp-timer").innerHTML = `Time left: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
                     timeLeft--;
+                    localStorage.setItem('timeLeft', timeLeft); // Update localStorage
                 }
             }, 1000);
         }
 
         window.onload = startTimer;
+
+        // Clear the localStorage timer on form submission
+        document.querySelector('form').onsubmit = function () {
+            localStorage.removeItem('timeLeft');
+        };
+        // Add this inside your OTP template <script> tag
+
+// Function to handle OTP resend link click
+document.getElementById('resend_otp_link').onclick = function(event) {
+    event.preventDefault(); // Prevent default link behavior
+    
+    // Confirm before resend
+    if (!confirm('Are you sure you want to resend OTP?')) {
+        return; // If user cancels, do nothing
+    }
+    
+    // AJAX request to resend OTP
+    fetch("{% url 'resend_otp' %}", {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest', // Optional: For AJAX-style requests
+        },
+    }).then(response => {
+        if (response.ok) {
+            // If OTP is successfully resent, reset the timer
+            clearInterval(timer); // Clear existing timer
+            timeLeft = 300; // Reset time left (5 minutes in seconds)
+            localStorage.setItem('timeLeft', timeLeft); // Update localStorage
+            startTimer(); // Restart timer
+            alert('OTP has been resent.'); // Alert success
+        }
+    }).catch(error => {
+        console.error('Error resending OTP:', error);
+    });
+};
+
+
     </script>
 </body>
 

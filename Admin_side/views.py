@@ -258,34 +258,41 @@ def product(request):
     data = Product.objects.all()
     return render(request,"product.html",{"data":data})
 
+
+
 def addProduct(request):
     basecategory = Category.objects.all()
-    context = {"base":basecategory,"edit_mode": False}
-    if request.method =='POST':
+    context = {"base": basecategory, "edit_mode": False}
+    
+    if request.method == 'POST':
         name = request.POST.get("productName")
-        category = request.POST.get("category")
-        sub = request.POST.get("subcategory")
+        category_id = request.POST.get("category")
+        subcategory_id = request.POST.get("subcategory")
         sku = request.POST.get("sku")
         stockQuantity = request.POST.get("stockQuantity")
         price = request.POST.get("price")
-        description = request.POST.get("discription")
-        productImage = request.FILES.getlist("productImage")
+        description = request.POST.get("description")
+        productImages = request.FILES.getlist("productImage")
         
-        if not name or not description or not category or not sku or not stockQuantity or not price or not sub:
+        if not name or not description or not category_id or not sku or not stockQuantity or not price or not subcategory_id:
             messages.error(request, "Please fill in all required fields.")
             return redirect('addProduct')
         
-        if not productImage or len(productImage) < 3:
+        if not productImages or len(productImages) < 3:
             messages.error(request, "You must upload at least 3 images.")
             return redirect('addProduct')
         
         if Product.objects.filter(SKU=sku).exists():
-            messages.error(request,f"Stock Keeping Unit {sku} is already exist")
+            messages.error(request, f"Stock Keeping Unit {sku} already exists")
             return redirect('addProduct')
         
-        # Validate category
-        category = Category.objects.get(id=category)
-        subcategory = SubCategory.objects.get(id=sub)
+        # Validate category and subcategory
+        try:
+            category = Category.objects.get(id=category_id)
+            subcategory = SubCategory.objects.get(id=subcategory_id)
+        except Category.DoesNotExist or SubCategory.DoesNotExist:
+            messages.error(request, "Selected category or subcategory does not exist.")
+            return redirect('addProduct')
         
         # Create Product instance
         product = Product.objects.create(
@@ -298,15 +305,16 @@ def addProduct(request):
             price=price,
             is_active=True
         )
-
+    
         # Save product images
-        for image in productImage:
+        for image in productImages:
             cropped_image = crop_image(image)
             ProductImage.objects.create(product=product, image=cropped_image)
 
         messages.success(request, "Product added successfully.")
         return redirect('product')
-    return render(request,"addProduct.html",context)
+    
+    return render(request, "addProduct.html", context)
 
 def crop_image(image_file):
     image = Image.open(image_file)
@@ -317,7 +325,6 @@ def crop_image(image_file):
     cropped_image.save(cropped_image_io, format=image.format)
     cropped_image_file = ContentFile(cropped_image_io.getvalue(), name=image_file.name)
     return cropped_image_file
-
 
 def get_subcategories(request, category_id):
     subcategories = SubCategory.objects.filter(category_id=category_id).values('id', 'name')
@@ -342,18 +349,17 @@ def unblockProduct(request, pk):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
     
-def editProduct(request,pk):
+from django.forms import CheckboxInput
+
+def editProduct(request, pk):
     product = get_object_or_404(Product, id=pk)
     basecategory = Category.objects.all()
     subcategories = SubCategory.objects.filter(category=product.category)
+    product_images = ProductImage.objects.filter(product=product)
     
-    context = {
-        "base": basecategory,
-        "subcategories": subcategories,
-        "edit_mode": True,
-        "product": product
-    }
-    
+    # Initialize a list to store images marked for deletion
+    images_to_delete = []
+
     if request.method == 'POST':
         product.name = request.POST.get("productName")
         category_id = request.POST.get("category")
@@ -366,41 +372,56 @@ def editProduct(request,pk):
         
         if not all([product.name, product.description, category_id, product.SKU, product.qty_in_stock, product.price, subcategory_id]):
             messages.error(request, "Please fill in all required fields.")
-            return redirect('editProduct', product_id=pk)
+            return redirect('editProduct', pk=pk)
         
-        if not productImage or len(productImage) < 3:
+        # Count selected checkboxes for deletion
+        delete_image_ids = [int(key.split('_')[-1]) for key in request.POST if key.startswith('delete_image_')]
+        selected_images_count = len(delete_image_ids)
+        
+        image_count = ProductImage.objects.filter(product=product).count()
+        # Process checkboxes to mark images for deletion
+        for image in product_images:
+            if request.POST.get(f"delete_image_{image.id}") == "on":
+                if selected_images_count > 0 and product_images.count() - selected_images_count < 3:
+                    messages.error(request, "You must have at least 3 images. Cannot delete to drop below this limit.")
+                    return redirect('editProduct', pk=pk)
+                else:
+                    images_to_delete.append(image)
+        
+        
+        # Ensure at least 3 images are uploaded if adding new images
+        if image_count + len(productImage) < 3:
             messages.error(request, "You must upload at least 3 images.")
-            return redirect('editProduct', product_id=pk)
+            return redirect('editProduct', pk=pk)
         
         if Product.objects.filter(SKU=product.SKU).exclude(id=pk).exists():
             messages.error(request, f"Stock Keeping Unit {product.SKU} already exists")
-            return redirect('editProduct', product_id=pk)
+            return redirect('editProduct', pk=pk)
         
         product.category = get_object_or_404(Category, id=category_id)
         product.subcategory = get_object_or_404(SubCategory, id=subcategory_id)
         product.save()
         
-        ProductImage.objects.filter(product=product).delete()
+        # Delete marked images
+        for image in images_to_delete:
+            image.delete()
+        
+        # Save new/updated images
         for image in productImage:
             ProductImage.objects.create(product=product, image=image)
 
         messages.success(request, "Product updated successfully.")
         return redirect('product')
 
+    # Add a checkbox to each image in the context for deletion
+    for image in product_images:
+        image.delete_checkbox = CheckboxInput()
+
+    context = {
+        "base": basecategory,
+        "subcategories": subcategories,
+        "edit_mode": True,
+        "product": product,
+        "product_images": product_images,
+    }
     return render(request, "addProduct.html", context)
-# class ProductListView(ListView):
-#     model = Product
-#     template_name = 'product_list.html'
-#     context_object_name = 'products'
-
-#     def get_queryset(self):
-#         category_id = self.kwargs.get('category_id')
-#         subcategory_id = self.kwargs.get('subcategory_id')
-#         queryset = Product.objects.all()
-
-#         if category_id:
-#             queryset = queryset.filter(category_id=category_id)
-#         if subcategory_id:
-#             queryset = queryset.filter(subcategory_id=subcategory_id)
-
-#         return queryset
